@@ -15,6 +15,9 @@ on:
 jobs:
   build:
     runs-on: macos-26
+    env:
+      CONFIGURATION: ${{ inputs.build_type == 'debug' && 'Debug' || 'Release' }}
+      BUILD_SUFFIX: ${{ inputs.build_type == 'debug' && ' (Debug)' || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -28,11 +31,7 @@ jobs:
       - name: Compile Feather
         run: | 
           agvtool new-version -all $(git rev-parse HEAD)
-          if [ "${{ inputs.build_type }}" = "debug" ]; then
-            make CONFIGURATION=Debug
-          else
-            make CONFIGURATION=Release
-          fi
+          make CONFIGURATION=${{ env.CONFIGURATION }}
           mkdir upload
           mv packages/* upload/
 
@@ -41,11 +40,6 @@ jobs:
         run: |
           VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Payload/*.app/Info.plist)
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
-          if [ "${{ inputs.build_type }}" = "debug" ]; then
-            echo "BUILD_SUFFIX= (Debug)" >> $GITHUB_ENV
-          else
-            echo "BUILD_SUFFIX=" >> $GITHUB_ENV
-          fi
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
