@@ -2,10 +2,22 @@ name: Create New Release
 
 on:
   workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build configuration (production or debug)'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - debug
 
 jobs:
   build:
     runs-on: macos-26
+    env:
+      CONFIGURATION: ${{ inputs.build_type == 'debug' && 'Debug' || 'Release' }}
+      BUILD_SUFFIX: ${{ inputs.build_type == 'debug' && ' (Debug)' || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -19,7 +31,7 @@ jobs:
       - name: Compile Feather
         run: | 
           agvtool new-version -all $(git rev-parse HEAD)
-          make
+          make CONFIGURATION=${{ env.CONFIGURATION }}
           mkdir upload
           mv packages/* upload/
 
@@ -32,7 +44,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Feather v${{ env.VERSION }}
+          name: Feather v${{ env.VERSION }}${{ env.BUILD_SUFFIX }}
           tag_name: v${{ env.VERSION }}
           files: |
             upload/*ipa
